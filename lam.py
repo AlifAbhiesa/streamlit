@@ -2,11 +2,9 @@ import streamlit as st
 import lamini
 import os
 
-os.environ["LAMINI_API_KEY"] = "6406b21a12ee13fd7d91e596e37446c524c0601598513d6a259ba516064afb66"
-
 # Initialize Lamini model
 llm = lamini.Lamini("meta-llama/Llama-3.2-3B-Instruct")
-lamini.api_key = "6406b21a12ee13fd7d91e596e37446c524c0601598513d6a259ba516064afb66"
+lamini.api_key = st.secrets["LAMINI_API_KEY"]
 
 
 # Input for generating text
