@@ -1,40 +1,42 @@
 import streamlit as st
-import lamini
-import os
+from supabase import create_client, Client
+import time
 
-# Initialize Lamini model
-llm = lamini.Lamini("meta-llama/Llama-3.2-3B-Instruct")
-lamini.api_key = st.secrets["LAMINI_API_KEY"]
+# Supabase configuration
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
+# Initialize Supabase client
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Input for generating text
-st.header("Generate Text")
-prompt = st.text_area("Enter a prompt:", value="What are the benefits of route optimization in logistics?")
-if st.button("Generate Response"):
-    with st.spinner("Generating response..."):
-        response = llm.generate(prompt)
-        st.success("Response generated!")
-        st.markdown(response)
+def fetch_description_by_id(record_id):
+    """
+    Fetches the description column from the llmResult table by ID.
+    """
+    try:
+        response = supabase.table("llmResult").select("description").eq("resultId", record_id).execute()
+        if response.data:
+            return response.data[0]["description"]
+        else:
+            return None
+    except Exception as e:
+        st.error(f"Error fetching data: {e}")
+        return None
 
-# Section for fine-tuning
-# st.header("Fine-Tune the Model")
-# st.markdown("Provide training data to fine-tune the model.")
-# with st.expander("Enter Training Data"):
-#     col1, col2 = st.columns(2)
-#     inputs = col1.text_area("Input Texts (comma-separated):", value="What is route optimization?, How can logistics reduce costs?")
-#     outputs = col2.text_area("Output Texts (comma-separated):", value="It improves efficiency., By optimizing delivery routes.")
+def stream_text(text):
+    """
+    Streams text character by character.
+    """
+    streamed_text = st.empty()  # Create a placeholder for dynamic text updates
+    current_text = ""
+    for char in text:
+        current_text += char
+        streamed_text.markdown(f"**{current_text}**")  # Update text dynamically
+        time.sleep(0.05)  # Add delay for streaming effect
 
-# if st.button("Fine-Tune Model"):
-#     input_list = [text.strip() for text in inputs.split(",")]
-#     output_list = [text.strip() for text in outputs.split(",")]
-#     if len(input_list) != len(output_list):
-#         st.error("The number of inputs must match the number of outputs!")
-#     else:
-#         training_data = [{"input": inp, "output": out} for inp, out in zip(input_list, output_list)]
-#         with st.spinner("Fine-tuning the model..."):
-#             llm.tune(data_or_dataset_id=training_data)
-#             st.success("Fine-tuning job started! Check your Lamini dashboard for status.")
+st.title("Route Sense")
 
-# Footer
-# st.markdown("---")
-# st.caption("Built with [Lamini](https://lamini.ai) and [Streamlit](https://streamlit.io)")
+query_params = st.query_params
+record_id = query_params.get("id", "")
+description = fetch_description_by_id(record_id)
+st.markdown(description)
